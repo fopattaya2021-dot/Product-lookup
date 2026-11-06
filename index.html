@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Lookup System</title>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .search-box { margin-bottom: 20px; display: flex; gap: 10px; }
+        .search-box input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        .search-box button { padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .search-box button:hover { background: #0056b3; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #000; padding: 8px 12px; font-size: 14px; }
+        th { width: 35%; background: #f8f9fa; text-align: left; }
+        td { width: 65%; }
+        
+        /* ตกแต่งสีตามเงื่อนไขในภาพตัวอย่าง */
+        .bg-red { background-color: #ff3b30; color: white; font-weight: bold; }
+        .bg-yellow { background-color: #ffff00; font-weight: bold; text-align: center; }
+        .bg-blue { background-color: #e0f2fe; text-align: center; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ระบบค้นหาข้อมูลสินค้า</h2>
+    <div class="search-box">
+        <input type="text" id="articleInput" placeholder="กรอกรหัส Article (เช่น ks4303)..." />
+        <button onclick="searchProduct()">ค้นหา</button>
+    </div>
+
+    <table>
+        <tr>
+            <th>Article</th>
+            <td id="res_article" style="font-weight: bold;">-</td>
+        </tr>
+        <tr>
+            <th>Model Name</th>
+            <td id="res_model" style="font-weight: bold;">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>ขายวันที่</td>
+            <td id="res_sale_date" class="text-center">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>Carry Over</td>
+            <td id="res_carry">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>RED / EXIT DATE</td>
+            <td id="res_exit_date" class="text-center">-</td>
+        </tr>
+        <tr>
+            <td>Sports Category</td>
+            <td id="res_sports">-</td>
+        </tr>
+        <tr>
+            <td>Product Division</td>
+            <td id="res_division">-</td>
+        </tr>
+        <tr>
+            <td>Gender</td>
+            <td id="res_gender">-</td>
+        </tr>
+        <tr>
+            <td>Sub Concept</td>
+            <td id="res_sub" style="color: #0d9488; font-weight: bold;">-</td>
+        </tr>
+        <tr>
+            <td>THA RRP Local</td>
+            <td id="res_rrp">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>PRE-LAUNCH ACCOUNTS</td>
+            <td id="res_pre">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>BKK PR/Launch Time</td>
+            <td id="res_bkk" class="text-center">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>Hard Launch Date</td>
+            <td id="res_hard">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>Exclusion _01 NOV'26</td>
+            <td id="res_exclusion">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>Campaign</td>
+            <td id="res_campaign">-</td>
+        </tr>
+        <tr class="bg-yellow">
+            <td>Not join adiclub/NEVER markdown</td>
+            <td id="res_adiclub">-</td>
+        </tr>
+        <tr class="bg-red">
+            <td>Embargo</td>
+            <td id="res_embargo">-</td>
+        </tr>
+        <tr class="bg-blue">
+            <td>THA Article Type</td>
+            <td id="res_type">-</td>
+        </tr>
+        <tr>
+            <td>Premium Inline</td>
+            <td id="res_premium">-</td>
+        </tr>
+        <tr class="bg-blue">
+            <td>MD</td>
+            <td id="res_md" style="color: #0369a1; font-weight: bold;">-</td>
+        </tr>
+        <tr class="bg-yellow">
+            <td>วันขายปกติ</td>
+            <td id="res_normal">-</td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    // แทนที่ลิงก์ด้านล่างด้วย CSV URL จาก Google Sheets ของคุณ
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQc6Ki6S2ar7xMAshQwHezyBsdPMyGzFZAZs0LTu8WRGhaMJRUPo4oEA5tIgPQYqWn5MAnyB8sWxCdn/pub?gid=1793233563&single=true&output=csv';
+
+    async function searchProduct() {
+        const keyword = document.getElementById('articleInput').value.trim().toLowerCase();
+        if (!keyword) {
+            alert('กรุณากรอกรหัส Article ก่อนค้นหา');
+            return;
+        }
+
+        try {
+            const response = await fetch(CSV_URL);
+            const data = await response.text();
+            
+            // แปลงข้อมูล CSV เป็นแถวและคอลัมน์
+            const rows = data.split('\n').map(row => {
+                return row.split(',').map(val => val.trim().replace(/^"(.*)"$/, '$1'));
+            });
+
+            let foundRow = null;
+            // ค้นหารหัส Article (เช็คจากคอลัมน์แรก Index 0)
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i][0] && rows[i][0].toLowerCase() === keyword) {
+                    foundRow = rows[i];
+                    break;
+                }
+            }
+
+            if (foundRow) {
+                // นำข้อมูลแต่ละคอลัมน์มาแสดงในตารางตามตำแหน่ง Index
+                document.getElementById('res_article').innerText = foundRow[0] || '';
+                document.getElementById('res_model').innerText = foundRow[1] || '';
+                document.getElementById('res_sale_date').innerText = foundRow[2] || '';
+                document.getElementById('res_carry').innerText = foundRow[3] || '';
+                document.getElementById('res_exit_date').innerText = foundRow[4] || '';
+                document.getElementById('res_sports').innerText = foundRow[5] || '';
+                document.getElementById('res_division').innerText = foundRow[6] || '';
+                document.getElementById('res_gender').innerText = foundRow[7] || '';
+                document.getElementById('res_sub').innerText = foundRow[8] || '';
+                document.getElementById('res_rrp').innerText = foundRow[9] || '';
+                document.getElementById('res_pre').innerText = foundRow[10] || '';
+                document.getElementById('res_bkk').innerText = foundRow[11] || '';
+                document.getElementById('res_hard').innerText = foundRow[12] || '';
+                document.getElementById('res_exclusion').innerText = foundRow[13] || '';
+                document.getElementById('res_campaign').innerText = foundRow[14] || '';
+                document.getElementById('res_adiclub').innerText = foundRow[15] || '';
+                document.getElementById('res_embargo').innerText = foundRow[16] || '';
+                document.getElementById('res_type').innerText = foundRow[17] || '';
+                document.getElementById('res_premium').innerText = foundRow[18] || '';
+                document.getElementById('res_md').innerText = foundRow[19] || '';
+                document.getElementById('res_normal').innerText = foundRow[20] || '';
+            } else {
+                alert('ไม่พบรหัสสินค้าที่คุณค้นหา');
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            alert('เกิดข้อผิดพลาดในการดึงข้อมูล (ตรวจสอบสิทธิ์การแชร์ลิงก์ Google Sheets)');
+        }
+    }
+</script>
+
+</body>
+</html>
